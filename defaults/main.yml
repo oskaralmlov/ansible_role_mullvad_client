@@ -1,0 +1,33 @@
+---
+# Your Mullvad account.
+mullvad_client_account: ""
+
+# The name of your default server (optional).
+mullvad_client_server: ""
+
+# The dict[str] representing your default location (optional).
+# Example:
+#   mullvad_client_location:
+#     city: mma
+#     country: se
+mullvad_client_location: {}
+
+# Controls if the client should auto-connect on startup.
+mullvad_client_auto_connect: true
+
+# A list[str] of programs to exclude from the tunnel.
+mullvad_client_exclude: []
+
+# Controls if LAN access should be enabled
+mullvad_client_lan_access: false
+
+# A str(IP/Hostname/default) of the DNS server to configure.
+mullvad_client_dns: default
+
+# A list[str] of the names of the blocklists to use.
+# Example:
+#   mullvad_client_dns_block:
+#     - ads
+#     - malware
+#     - tracking
+mullvad_client_dns_block: []

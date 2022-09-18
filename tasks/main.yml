@@ -1,0 +1,78 @@
+---
+- tags: mullvad_client
+  block:
+
+    - name: Assert mullvad_client_account is set
+      ansible.builtin.assert:
+        that:
+          - mullvad_client_account | length
+        fail_msg: mullvad_client_account needs to be set
+
+    - name: Gather required facts
+      ansible.builtin.setup:
+      when: ansible_os_family is undefined
+
+    - name: Install Mullvad Client
+      become: true
+      vars:
+        _app_urls:
+          RedHat: https://mullvad.net/download/app/rpm/latest
+          Debian: https://mullvad.net/download/app/deb/latest
+      block:
+
+        - name: Install Mullvad Client (Debian)
+          ansible.builtin.apt:
+            deb: '{{ _app_urls[ansible_os_family] }}'
+          when: ansible_os_family == 'Debian'
+
+        - name: Install Mullvad Client (RedHat)
+          ansible.builtin.dnf:
+            name: '{{ _app_urls[ansible_os_family] }}'
+          when: ansible_os_family == 'RedHat'
+
+
+    - name: Configure account
+      ansible.builtin.command:
+        cmd: mullvad account set {{ mullvad_client_account }}
+
+    - name: Configure location
+      ansible.builtin.command:
+        cmd: mullvad relay set location {{ mullvad_client_location.country }} {{ mullvad_client_location.city }}
+      when: 
+        - mullvad_client_location.city is defined
+        - mullvad_client_location.country is defined
+
+    - name: Configure server
+      ansible.builtin.command:
+        cmd: mullvad relay set hostname {{ mullvad_client_server }}
+      when: mullvad_client_server | length
+
+    - name: Configure DNS
+      ansible.builtin.command:
+        cmd: mullvad dns set {{ _custom_or_default }} {{ mullvad_client_dns }} {{ _blocklists }}
+      vars:
+        _custom_or_default: "{{ mullvad_client_dns == 'default' | default('', 'custom') }}"
+        _blocklists: >-
+          {% if mullvad_client_dns == 'default' %}
+          {% for _blocklist_type in mullvad_client_dns_block %}
+          --block-{{ _blocklist_type }}
+          {% endfor %}
+          {% endif %}
+
+    - name: Exclude programs
+      ansible.builtin.command:
+        cmd: mullvad-exclude {{ item }}
+      loop: "{{ mullvad_client_exclude }}"
+
+    - name: Configure auto-connect
+      ansible.builtin.command:
+        cmd: mullvad auto-connect {{ _bool_to_text[mullvad_client_auto_connect] }}
+      vars:
+        _bool_to_text:
+          true: on
+          false: off
+
+    - name: Ensure client is connected
+      ansible.builtin.command:
+        cmd: mullvad connect
+      when: mullvad_client_auto_connect
